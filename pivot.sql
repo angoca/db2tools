@@ -44,8 +44,9 @@ create or replace procedure pivot (
   call logger.get_logger('test', id);
   call logger.error(id, '> Start');
 
+  -- Checks that the values of the first column are different and not null.
   check_values: begin
-   declare sentence varchar(128);
+   declare sentence varchar(32672);
    declare col_name varchar(128);
    declare qty_diff int;
    declare qty int;
@@ -60,23 +61,24 @@ create or replace procedure pivot (
    set col_name = col[1].col_name;
    call dbms_sql.close_cursor(handle);
    set sentence = 'set ? = (select count(1) from table(select count(1) from '
-     || tablename || ' group by ' || col_name || '))';
+     || tablename || ' where ' || col_name || ' is not null group by '
+     || col_name || '))';
    prepare stmt from sentence;
    execute stmt into qty_diff;
    set sentence = 'set ? = (select count(1) from ' || tablename || ')'  ;
    prepare stmt from sentence;
    execute stmt into qty;
    if (qty_diff <> qty) then
-    call logger.error(id, 'First column is not unique');
+    call logger.error(id, 'First column is not unique or it has nulls');
     signal sqlstate value 'PIUNI'
-      set message_text = 'First column is not unique';
+      set message_text = 'First column is not unique or it has nulls';
    end if;
   end check_values;
 
   -- Tries to pivot the table.
   check_max: begin
    declare rows smallint;
-   declare sentence varchar(128);
+   declare sentence varchar(32672);
    declare col_name varchar(128);
    declare stmt statement;
 
@@ -140,7 +142,7 @@ create or replace procedure pivot (
   temp_table: begin
    declare create_table varchar(1024) default
      'create table session.pivot_temp (row varchar(128), ';
-   declare sentence varchar(128);
+   declare sentence varchar(32672);
    declare handle integer;
    declare col_name varchar(128);
    declare at_end boolean default true;
@@ -194,7 +196,7 @@ create or replace procedure pivot (
    declare col_name varchar(128);
    declare i integer default 2;
    declare j integer default 1;
-   declare statement varchar(256);
+   declare statement varchar(32672);
    declare value varchar(32672);
    declare status integer;
 
@@ -232,7 +234,8 @@ create or replace procedure pivot (
       call logger.debug(id, 'Value ' || value);
       call logger.debug(id, 'Col ' || col_name);
       set statement = 'insert into session.pivot_temp (row, ' || col_name
-        || ') values (''' || col1[i].col_name || ''', ''' || value || ''')';
+        || ') values (''' || col1[i].col_name || ''', '
+        || coalesce ('''' || value || '''', 'null') || ')';
       call logger.info(id, 'Stmt ' || statement);
       prepare stmt from statement;
       execute stmt;
@@ -251,10 +254,10 @@ create or replace procedure pivot (
    declare i integer default 2;
    declare col_count integer;
    declare col dbms_sql.desc_tab;
-   declare statement varchar(256);
+   declare statement varchar(32672);
    declare value varchar(32672);
    declare status integer;
-   declare col_group varchar(32672);
+   declare col_group varchar(128);
 
    call dbms_sql.open_cursor(handle);
    call dbms_sql.parse(handle, 'select * from session.pivot_temp',
@@ -292,19 +295,3 @@ create bufferpool bp4k pagesize 4k @
 create user temporary tablespace ut4k pagesize 4k bufferpool bp4k @
 */
 
-drop table my_table @
-create table my_table (names varchar(16), amt1 int, amt2 int) @
-insert into my_table values
-  ('Mike', 6000, 5000),
-  ('Jerry', 1000, 10),
-  ('King', 500, 2000),
-  ('Mary',400,5000),
-  ('Harry',100,500) @
-call pivot('my_table') @
-select * from session.pivot_temp @
-select * from session.pivot @
-
-call pivot('syscat.schemata') @
-select * from session.pivot_temp @
-select * from session.pivot @
-select * from syscat.schemata
