@@ -23,10 +23,23 @@
 /**
  * Checks prerequisites. This stored procedure requieres log4db2.
  *
+ * PINUL: Tablename is null.
+ * PIUNI: Values in first column are not unique.
+ * PIMAX: Rows exceed the column quantity limit.
+ * PITYP: Invalid datatype for column to pivot.
+ *
  * Version: 2014-10-28
  * Author: Andres Gomez Casanova (AngocA)
  * Made in COLOMBIA.
  */
+
+/*
+-- In order to work correctly, it could be necessary to have user and system
+-- temporary tablespaces with 32 page size.
+create bufferpool bp32k pagesize 32k @
+create user temporary tablespace ut32k pagesize 32k bufferpool bp32k @
+create system temporary tablespace st32k pagesize 32k bufferpool bp32k @
+*/
 
 /**
  * Pivots the table whose name is passed as parameter.
@@ -41,7 +54,7 @@ create or replace procedure pivot (
   declare id smallint;
   declare max_precision integer default 0;
 
-  call logger.get_logger('test', id);
+  call logger.get_logger('PivotTable', id);
   call logger.error(id, '> Start');
 
   -- Checks that the values of the first column are different and not null.
@@ -54,6 +67,13 @@ create or replace procedure pivot (
    declare col_count integer;
    declare col dbms_sql.desc_tab;
    declare stmt statement;
+
+   if (tablename is null or tablename = '') then
+    signal sqlstate value 'PINUL'
+      set message_text = 'Tablename is null or empty';
+   else
+    call logger.warn(id, 'Pivoting: ' || tablename);
+   end if;
 
    call dbms_sql.open_cursor(handle);
    call dbms_sql.parse(handle, 'select * from ' || tablename, dbms_sql.native);
@@ -69,7 +89,7 @@ create or replace procedure pivot (
    prepare stmt from sentence;
    execute stmt into qty;
    if (qty_diff <> qty) then
-    call logger.error(id, 'First column is not unique or it has nulls');
+    call logger.fatal(id, 'First column is not unique or it has nulls');
     signal sqlstate value 'PIUNI'
       set message_text = 'First column is not unique or it has nulls';
    end if;
@@ -89,7 +109,7 @@ create or replace procedure pivot (
    if (rows > 1012) then
     -- The quantity of rows is bigger that the maximal quantity of columns.
     -- Impossible to pivot.
-    call logger.error(id, 'Max rows reached');
+    call logger.fatal(id, 'Max rows reached');
     signal sqlstate value 'PIMAX'
       set message_text = 'Rows are bigger that max columns';
    end if;
@@ -101,26 +121,64 @@ create or replace procedure pivot (
    declare handle integer;
    declare i integer default 2;
    declare col_count integer;
+   declare col_type integer;
+   declare temp_pres integer;
    declare col dbms_sql.desc_tab;
 
    call dbms_sql.open_cursor(handle);
    call dbms_sql.parse(handle, 'select * from ' || tablename, dbms_sql.native);
    call dbms_sql.describe_columns(handle, col_count, col);
    if (col_count > 0) then
-    call logger.warn(id, 'Retrieving max column value');
+    call logger.info(id, 'Retrieving maximal column value');
     fetchLoop: loop
      if (i > col_count) then
       leave fetchLoop;
      end if;
      call logger.debug(id, 'Column ' || i || ', ' || col[i].col_name || ': '
-       ||col[i].col_max_len);
-     if (col[i].col_max_len > max_precision) then
-      set max_precision = col[i].col_max_len;
+       || col[i].col_max_len || ', ' || col[i].col_type);
+     set col_type = col[i].col_type;
+     if (col_type = 500 or col_type = 501) then
+      -- Smallint.
+      set temp_pres = 5;
+     elseif (col_type = 496 or col_type = 497) then
+      -- Integer.
+      set temp_pres = 10;
+     elseif (col_type = 492 or col_type = 493) then
+      -- Bigint.
+      set temp_pres = 19;
+     elseif (col_type = 452 or col_type = 453 or col_type = 448
+       or col_type = 449) then
+      -- Char, varchar.
+      set temp_pres = col[i].col_max_len;
+     elseif (col_type = 384 or col_type = 385) then
+      -- Date.
+      set temp_pres = 11;
+     elseif (col_type = 388 or col_type = 389) then
+      -- Time.
+      set temp_pres = 9;
+     elseif (col_type = 392 or col_type = 393) then
+      -- Timestamp.
+      set temp_pres = 33;
+     elseif (col_type = 484 or col_type = 485) then
+      -- Decimal.
+      set temp_pres = col[i].col_max_len + col[i].col_scale + 1;
+     elseif  (col_type = 988 or col_type = 989 or col_type = 916
+       or col_type = 917 or col_type = 960 or col_type = 961 or col_type = 404
+       or col_type = 405 or col_type = 920 or col_type = 921 or col_type = 964
+       or col_type = 965 or col_type = 408 or col_type = 409 or col_type = 456
+       or col_type = 457) then
+      call logger.fatal(id, 'Invalid data type (' || col_type
+        || ') at column ' || col[i].col_name);
+      signal sqlstate value 'PITYP'
+      set message_text = 'Invalid data type';
+     end if;
+     if (temp_pres > max_precision) then
+      set max_precision = temp_pres;
      end if;
      set i = i + 1;
     end loop;
-    call logger.warn(id, 'Max precision ' || max_precision);
-    call logger.warn(id, 'Max columns  ' || i);
+    call logger.warn(id, 'Columns: ' || i);
+    call logger.warn(id, 'Maximal precision: ' || max_precision);
    end if;
    call dbms_sql.close_cursor(handle);
   end max_precision;
@@ -140,7 +198,7 @@ create or replace procedure pivot (
 
   -- Pivots the table by creating two temporal tables.
   temp_table: begin
-   declare create_table varchar(1024) default
+   declare create_table varchar(32672) default
      'create table session.pivot_temp (row varchar(128), ';
    declare sentence varchar(32672);
    declare handle integer;
@@ -168,14 +226,14 @@ create or replace procedure pivot (
     call logger.debug(id, 'Row: ' || col_name);
     set create_table = create_table || col_name || ' varchar('
       || max_precision || ')';
-    call logger.debug(id, create_table);
+    --call logger.debug(id, create_table);
     fetch names_cursor into col_name;
     if (at_end != false) then
      set create_table = create_table || ', ';
     end if;
    end while;
    set create_table = create_table || ')';
-   call logger.warn(id, create_table);
+   --call logger.debug(id, create_table);
    prepare stmt from create_table;
    execute stmt;
    set create_table = 'create table session.pivot like session.pivot_temp';
@@ -210,7 +268,7 @@ create or replace procedure pivot (
       leave fetchLoop;
      end if;
      set statement = 'select ' || col1[i].col_name || ' from ' || tablename;
-     call logger.warn(id, 'Statement ' || statement);
+     call logger.info(id, 'Stmt: ''' || statement || '''');
      call dbms_sql.open_cursor(handle2);
      call dbms_sql.parse(handle2, statement, dbms_sql.native);
      call dbms_sql.define_column_varchar(handle2, 1, value, max_precision);
@@ -218,7 +276,7 @@ create or replace procedure pivot (
      set j = 2;
      fetch_loop2: loop
       call dbms_sql.fetch_rows(handle2, status);
-      call logger.warn(id, 'Status ' || status);
+      call logger.debug(id, 'Status: ' || status);
       if (status = 0) then
        leave fetch_loop2;
       end if;
@@ -236,7 +294,7 @@ create or replace procedure pivot (
       set statement = 'insert into session.pivot_temp (row, ' || col_name
         || ') values (''' || col1[i].col_name || ''', '
         || coalesce ('''' || value || '''', 'null') || ')';
-      call logger.info(id, 'Stmt ' || statement);
+      call logger.info(id, 'Stmt: ''' || statement || '''');
       prepare stmt from statement;
       execute stmt;
       set j = j + 1;
@@ -289,9 +347,4 @@ create or replace procedure pivot (
 
   call logger.error(id, '< Finished');
  end @
-
-/*
-create bufferpool bp4k pagesize 4k @
-create user temporary tablespace ut4k pagesize 4k bufferpool bp4k @
-*/
 
