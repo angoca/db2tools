@@ -118,12 +118,14 @@ create or replace procedure pivot (
   -- Retrieves the maximal precision of the row, to create all columns with
   -- that precision.
   max_precision: begin
+   declare sentence varchar(32672);
    declare handle integer;
    declare i integer default 2;
    declare col_count integer;
    declare col_type integer;
    declare temp_pres integer;
    declare col dbms_sql.desc_tab;
+   declare stmt statement;
 
    call dbms_sql.open_cursor(handle);
    call dbms_sql.parse(handle, 'select * from ' || tablename, dbms_sql.native);
@@ -149,7 +151,11 @@ create or replace procedure pivot (
      elseif (col_type = 452 or col_type = 453 or col_type = 448
        or col_type = 449) then
       -- Char, varchar.
-      set temp_pres = col[i].col_max_len;
+      set sentence = 'set ? = (select max(length(' || col[i].col_name
+        || ')) from ' || tablename || ')';
+      prepare stmt from sentence;
+      execute stmt into temp_pres;
+      --set temp_pres = col[i].col_max_len;
      elseif (col_type = 384 or col_type = 385) then
       -- Date.
       set temp_pres = 11;

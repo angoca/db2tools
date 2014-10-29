@@ -34,6 +34,12 @@ select * from session.pivot_temp;
 select * from session.pivot;
 
 
+-- Test a real table.
+call pivot('syscat.schemata');
+select * from session.pivot_temp;
+select * from session.pivot;
+
+
 call pivot(null);
 call pivot('');
 
