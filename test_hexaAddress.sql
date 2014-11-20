@@ -34,3 +34,13 @@ values CONVERT_IP_HEXA('0A010046');
 -- 10.1.0.71 The first level represents also a 0 in DB2.
 values CONVERT_IP_HEXA('GA010047');
 
+-- Test the extraction of IP addresses from an application ID.
+-- 10.1.11.131
+values get_address('10.1.11.131.3515.141120023017');
+-- 10.1.15.185
+values get_address('10.1.15.185.4782.141120144011');
+-- 10.1.0.70
+values get_address('0A010046.C23B.141120144312');
+-- 127.0.0.1
+values get_address('*LOCAL.imag107p.141120142800');
+

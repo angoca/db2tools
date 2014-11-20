@@ -70,3 +70,54 @@ CREATE OR REPLACE FUNCTION CONVERT_IP_HEXA(
   RETURN RET;
  END @
 
+/**
+  * Retrieves the IP Address from an application ID. The first part of the
+  * app id is the IP address. However, the notation could be squad dotted
+  * or hexadecimal. This function retrieves all addresses in squad dotted
+  * notation.
+  *
+  * If the connection is local, it will return 127.0.0.10.
+  *
+  * IN APP_ID
+  *   Application ID.
+  * RETURNS Address IP.
+  */
+CREATE OR REPLACE FUNCTION GET_ADDRESS (
+  IN APP_ID VARCHAR(128)
+  ) RETURNS VARCHAR(128)
+  DETERMINISTIC
+  NO EXTERNAL ACTION
+ BEGIN
+  DECLARE LOGGER_ID SMALLINT;
+  DECLARE ADDRESS VARCHAR(15);
+  DECLARE POS SMALLINT;
+  DECLARE TOTAL_POS SMALLINT;
+  DECLARE IP_ADDR VARCHAR(128);
+  
+  SET ADDRESS = APP_ID;
+  SET POS = POSSTR(ADDRESS, '.');
+  IF (POS <= 5) THEN
+   SET TOTAL_POS = POS;
+   SET ADDRESS = SUBSTR(ADDRESS, POS + 1);
+   SET POS = POSSTR(ADDRESS, '.');
+   SET TOTAL_POS = TOTAL_POS + POS;
+   SET ADDRESS = SUBSTR(ADDRESS, POS + 1);
+   SET POS = POSSTR(ADDRESS, '.');
+   SET TOTAL_POS = TOTAL_POS + POS;
+   SET ADDRESS = SUBSTR(ADDRESS, POS + 1);
+   SET POS = POSSTR(ADDRESS, '.');
+   SET TOTAL_POS = TOTAL_POS + POS;
+   SET IP_ADDR = SUBSTR(APP_ID, 1, TOTAL_POS - 1);
+  ELSEIF (POS = 7) THEN
+   -- Local connexion
+   SET IP_ADDR = '127.0.0.1';
+  ELSEIF (POS = 9) THEN
+   -- Connexion from old DB2 client.
+   SET ADDRESS = SUBSTR(APP_ID, 1, 8);
+   SET IP_ADDR = CONVERT_IP_HEXA(ADDRESS);
+  ELSE
+   SET IP_ADDR = NULL;
+  END IF;
+  RETURN IP_ADDR;
+ END @
+

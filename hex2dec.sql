@@ -95,6 +95,9 @@ CREATE OR REPLACE FUNCTION CONVERT_HEXA (
   * Converts a hexadecimal value into a decimal value. If any of the
   * hexadecimal digits is invalid, the HEX01 signal will be raised.
   *
+  * For more information about the conversion:
+  * http://www.wikihow.com/Convert-Hexadecimal-to-Binary-or-Decimal
+  *
   * The maximum hexadecimal value is 7F000000. If a bigger value is passed,
   * the SQLSTATE 22003 will be raised.
   *
