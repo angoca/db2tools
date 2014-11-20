@@ -21,7 +21,7 @@
 */
 
 /**
- * Checks prerequisites. This stored procedure requieres log4db2.
+ * Checks prerequisites. This stored procedure requires log4db2.
  *
  * PINUL: Tablename is null.
  * PIUNI: Values in first column are not unique.
