@@ -26,7 +26,7 @@
  * PINUL: Tablename is null.
  * PIUNI: Values in first column are not unique.
  * PIMAX: Rows exceed the column quantity limit.
- * PITYP: Invalid datatype for column to pivot.
+ * PITYP: Invalid column datatype to pivot.
  *
  * Version: 2014-10-28
  * Author: Andres Gomez Casanova (AngocA)
