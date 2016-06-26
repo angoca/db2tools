@@ -4,12 +4,12 @@
  This file is part of db2tools: Set of routines that can ease your daily work
  Copyright (C)  2014  Andres Gomez Casanova (@AngocA)
 
- db2unit is free software: you can redistribute it and/or modify
+ db2tools is free software: you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
  the Free Software Foundation, either version 3 of the License, or
  (at your option) any later version.
 
- db2unit is distributed in the hope that it will be useful,
+ db2tools is distributed in the hope that it will be useful,
  but WITHOUT ANY WARRANTY; without even the implied warranty of
  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  GNU General Public License for more details.
