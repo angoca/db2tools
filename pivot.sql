@@ -21,8 +21,10 @@
 */
 
 /**
- * Checks prerequisites. This stored procedure requires log4db2.
+ * Pivots a table to see the values in a better display. This stored 
+ * procedure requires log4db2.
  *
+ * Error codes:
  * PINUL: Tablename is null.
  * PIUNI: Values in first column are not unique.
  * PIMAX: Rows exceed the column quantity limit.
