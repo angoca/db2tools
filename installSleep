@@ -7,7 +7,7 @@
 # directory.
 #
 # In order to run this script, you should use the current environment:
-# . ./install
+# . ./installSleep
 #
 # The error codes are:
 # 1) The DB2 environment is not set.
@@ -57,8 +57,8 @@ echo "Installing stored procedure in database: ${DATABASE_NAME}"
 
 rm ${TEST_FILE}
 
-# Moves the file to compile to this directory.
-cp ${SOURCE_DIR}/${SP_FILENAME}.c ${TARGET_DIR}
+# Copies the file to compile to this directory.
+tail -n +3 ${SOURCE_DIR}/${SP_FILENAME}.c > ${TARGET_DIR}/${SP_FILENAME}.c
 cp ${SOURCE_DIR}/${SP_FILENAME}.exp ${TARGET_DIR}
 
 # Creates the object via bldrtn.
@@ -88,5 +88,4 @@ else
   echo "There was an error installing the stored procedure."
   echo "${SP_FILENAME}!${SP_NAME}"
 fi
-
 
