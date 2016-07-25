@@ -6,19 +6,19 @@
   #include <unistd.h>
 #endif
 
-#include <sqludf.h>
-#include <sqlca.h>
 /**
  * File for the sleep function.
  * Taken from SQLTips4DB2LUW blog, written by Serge Rielau.
  * https://www.ibm.com/developerworks/community/blogs/SQLTips4DB2LUW/entry/sleep?lang=en
  */
+#include <sqludf.h>
+#include <sqlca.h>
 
-/*************************************************************************
+/**
  *  function sleep: Sleep for at least seconds
  *
  *     inputs :   seconds to sleep
- *************************************************************************/
+ */
 
 #ifdef __cplusplus
 extern "C"
