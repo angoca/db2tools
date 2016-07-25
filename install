@@ -1,0 +1,92 @@
+#!/bin/bash
+
+# Compiles and installs the sleep command.
+# It takes the source from src/c, compiles it with bldrtn and this will
+# installs it in sqllib/function.
+# This script checks if the user can install the object in the function
+# directory.
+#
+# In order to run this script, you should use the current environment:
+# . ./install
+#
+# The error codes are:
+# 1) The DB2 environment is not set.
+# 2) The current user cannot write in the function directory.
+# 3) There is not a DB2 connection.
+#
+# Author: Andres Gomez
+# Version: 2016-07-25
+
+# Stored procedure file name.
+SP_FILENAME=sleep
+# Stored procedure name in file.
+SP_NAME=sleep_sec
+# Directory where the source file is.
+SOURCE_DIR=src/c
+# Targer directory.
+TARGET_DIR=target
+# Temporal file for the database name.
+TEMP_FILE=/tmp/databaseName.tmp
+
+# Checks if the DB2 environment is already set.
+if [ -z ${DB2_HOME} ] ; then
+  echo "The DB2 environment is not set"
+  return 1
+fi
+
+# Checks if the user can write in the function directory.
+TEST_FILE=${DB2_HOME}/function/test
+touch ${TEST_FILE}
+if [ ${?} -ne 0 ] ; then
+  echo "The ${USER} user does not have privileges to write in ${DB2_HOME}/function"
+  return 2
+fi
+
+# Checks if the current session is connected to a DB2 database.
+db2 connect > /dev/null 2>&1
+if [ $? -ne 0 ] ; then
+  echo "There is not any established connection to a database."
+  return 3
+fi
+
+# Activate for debugging process.
+#set -vx
+db2 -x values current server > ${TEMP_FILE}
+DATABASE_NAME=$(cat ${TEMP_FILE})
+echo "Installing stored procedure in database: ${DATABASE_NAME}"
+
+rm ${TEST_FILE}
+
+# Moves the file to compile to this directory.
+cp ${SOURCE_DIR}/${SP_FILENAME}.c ${TARGET_DIR}
+cp ${SOURCE_DIR}/${SP_FILENAME}.exp ${TARGET_DIR}
+
+# Creates the object via bldrtn.
+mkdir -p ${TARGET_DIR}
+cd ${TARGET_DIR}
+${DB2_HOME}/samples/c/bldrtn ${SP_FILENAME}
+
+# Borra los elementos copiados y generados.
+rm ./${SP_FILENAME} ./${SP_FILENAME}.c ./${SP_FILENAME}.exp ./${SP_FILENAME}.o
+cd - > /dev/null
+
+# Installs the library in the database
+db2 "CREATE OR REPLACE PROCEDURE SLEEP(
+    SECONDS INTEGER
+  )
+  SPECIFIC SLEEP
+  NO SQL
+  DETERMINISTIC
+  NO EXTERNAL ACTION
+  FENCED
+  EXTERNAL NAME '${SP_FILENAME}!${SP_NAME}'
+  LANGUAGE C
+  PARAMETER STYLE SQL"
+if [ ${?} -eq 0 ] ; then
+  echo "Stored procedure installed successfully: ${SP_FILENAME}!${SP_NAME}."
+else
+  echo "There was an error installing the stored procedure."
+  echo "${SP_FILENAME}!${SP_NAME}"
+fi
+
+
