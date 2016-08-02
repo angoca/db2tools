@@ -47,7 +47,8 @@ create system temporary tablespace st32k pagesize 32k bufferpool bp32k @
  * Pivots the table whose name is passed as parameter.
  *
  * in tablename
- *   Name of the table to pivot.
+ *   Name of the table to pivot. It could include the schema in the 
+ * schemaName.tableName format.
  */
 create or replace procedure pivot (
   in tablename varchar(128)
