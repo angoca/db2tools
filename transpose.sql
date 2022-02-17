@@ -25,10 +25,10 @@
  * procedure requires log4db2.
  *
  * Error codes:
- * PINUL: Tablename is null.
- * PIUNI: Values in first column are not unique.
- * PIMAX: Rows exceed the column quantity limit.
- * PITYP: Invalid column datatype to transpose.
+ * TRNUL: Tablename is null.
+ * TRUNI: Values in first column are not unique.
+ * TRMAX: Rows exceed the column quantity limit.
+ * TRTYP: Invalid column datatype to transpose.
  *
  * Version: 2014-10-28
  * Author: Andres Gomez Casanova (AngocA)
@@ -72,7 +72,7 @@ create or replace procedure transpose (
    declare stmt statement;
 
    if (tablename is null or tablename = '') then
-    signal sqlstate value 'PINUL'
+    signal sqlstate value 'TRNUL'
       set message_text = 'Tablename is null or empty';
    else
     call logger.warn(id, 'Transposing: ' || tablename);
@@ -93,7 +93,7 @@ create or replace procedure transpose (
    execute stmt into qty;
    if (qty_diff <> qty) then
     call logger.fatal(id, 'First column is not unique or it has nulls');
-    signal sqlstate value 'PIUNI'
+    signal sqlstate value 'TRUNI'
       set message_text = 'First column is not unique or it has nulls';
    end if;
   end check_values;
@@ -113,7 +113,7 @@ create or replace procedure transpose (
     -- The quantity of rows is bigger that the maximal quantity of columns.
     -- Impossible to transpose.
     call logger.fatal(id, 'Max rows reached');
-    signal sqlstate value 'PIMAX'
+    signal sqlstate value 'TRMAX'
       set message_text = 'Rows are bigger that max columns';
    end if;
   end check_max;
@@ -178,7 +178,7 @@ create or replace procedure transpose (
        or col_type = 457) then
       call logger.fatal(id, 'Invalid data type (' || col_type
         || ') at column ' || col[i].col_name);
-      signal sqlstate value 'PITYP'
+      signal sqlstate value 'TRTYP'
       set message_text = 'Invalid data type';
      end if;
      if (temp_pres > max_precision) then
