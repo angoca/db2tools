@@ -21,7 +21,7 @@
 */
 
 /**
- * Tests for the pivot procedure.
+ * Tests for the transpose procedure.
  *
  * Version: 2014-10-28
  * Author: Andres Gomez Casanova (AngocA)
@@ -29,19 +29,19 @@
  */
 
 -- Test a real table.
-call pivot('syscat.bufferpools');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('syscat.bufferpools');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test a real table.
-call pivot('syscat.schemata');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('syscat.schemata');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
-call pivot(null);
-call pivot('');
+call transpose(null);
+call transpose('');
 
 
 -- Test an example table.
@@ -53,9 +53,9 @@ insert into test1 values
   ('King', 500, 2000),
   ('Mary', 400, 5000),
   ('Harry', 100, 500);
-call pivot('test1');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test1');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test a double in first column (error).
@@ -68,9 +68,9 @@ insert into test2 values
   ('Mary', 400, 5000),
   ('Mike', 400, 500),
   ('Harry', 100, 500);
-call pivot('test2');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test2');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test a null in the first column (error).
