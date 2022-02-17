@@ -21,14 +21,14 @@
 */
 
 /**
- * Pivots a table to see the values in a better display. This stored 
+ * Transposes a table to see the values in a better display. This stored 
  * procedure requires log4db2.
  *
  * Error codes:
  * PINUL: Tablename is null.
  * PIUNI: Values in first column are not unique.
  * PIMAX: Rows exceed the column quantity limit.
- * PITYP: Invalid column datatype to pivot.
+ * PITYP: Invalid column datatype to transpose.
  *
  * Version: 2014-10-28
  * Author: Andres Gomez Casanova (AngocA)
@@ -44,20 +44,20 @@ create system temporary tablespace st32k pagesize 32k bufferpool bp32k @
 */
 
 /**
- * Pivots the table whose name is passed as parameter.
+ * Transposes the table whose name is passed as parameter.
  *
  * in tablename
- *   Name of the table to pivot. It could include the schema in the 
+ *   Name of the table to transpose. It could include the schema in the 
  * schemaName.tableName format.
  */
-create or replace procedure pivot (
+create or replace procedure transpose (
   in tablename varchar(128)
   )
  begin
   declare id smallint;
   declare max_precision integer default 0;
 
-  call logger.get_logger('PivotTable', id);
+  call logger.get_logger('TransposeTable', id);
   call logger.error(id, '> Start');
 
   -- Checks that the values of the first column are different and not null.
@@ -75,7 +75,7 @@ create or replace procedure pivot (
     signal sqlstate value 'PINUL'
       set message_text = 'Tablename is null or empty';
    else
-    call logger.warn(id, 'Pivoting: ' || tablename);
+    call logger.warn(id, 'Transposing: ' || tablename);
    end if;
 
    call dbms_sql.open_cursor(handle);
@@ -98,7 +98,7 @@ create or replace procedure pivot (
    end if;
   end check_values;
 
-  -- Tries to pivot the table.
+  -- Tries to transpose the table.
   check_max: begin
    declare rows smallint;
    declare sentence varchar(32672);
@@ -111,7 +111,7 @@ create or replace procedure pivot (
    call logger.warn(id, 'Rows: ' || rows);
    if (rows > 1012) then
     -- The quantity of rows is bigger that the maximal quantity of columns.
-    -- Impossible to pivot.
+    -- Impossible to transpose.
     call logger.fatal(id, 'Max rows reached');
     signal sqlstate value 'PIMAX'
       set message_text = 'Rows are bigger that max columns';
@@ -192,15 +192,15 @@ create or replace procedure pivot (
    call dbms_sql.close_cursor(handle);
   end max_precision;
 
-  -- Deletes existent session table for pivoting.
+  -- Deletes existent session table for transposing.
   drop_current: begin
-   declare drop_table varchar(256) default 'drop table session.pivot_temp';
+   declare drop_table varchar(256) default 'drop table session.transpose_temp';
    declare stmt statement;
    declare continue handler for sqlstate '42704' begin end;
 
    prepare stmt from drop_table;
    execute stmt;
-   set drop_table = 'drop table session.pivot';
+   set drop_table = 'drop table session.transpose';
    prepare stmt from drop_table;
    execute stmt;
   end drop_current;
@@ -208,7 +208,7 @@ create or replace procedure pivot (
   -- Pivots the table by creating two temporal tables.
   temp_table: begin
    declare create_table varchar(32672) default
-     'create table session.pivot_temp (row varchar(128), ';
+     'create table session.transpose_temp (row varchar(128), ';
    declare sentence varchar(32672);
    declare handle integer;
    declare col_name varchar(128);
@@ -245,7 +245,7 @@ create or replace procedure pivot (
    --call logger.debug(id, create_table);
    prepare stmt from create_table;
    execute stmt;
-   set create_table = 'create table session.pivot like session.pivot_temp';
+   set create_table = 'create table session.transpose like session.transpose_temp';
    prepare stmt from create_table;
    execute stmt;
   end temp_table;
@@ -292,7 +292,7 @@ create or replace procedure pivot (
       call dbms_sql.column_value_varchar(handle2, 1, value);
 
       call dbms_sql.open_cursor(handle3);
-      call dbms_sql.parse(handle3, 'select * from session.pivot_temp',
+      call dbms_sql.parse(handle3, 'select * from session.transpose_temp',
         dbms_sql.native);
       call dbms_sql.describe_columns(handle3, col_count2, col2);
       set col_name = col2[j].col_name;
@@ -300,7 +300,7 @@ create or replace procedure pivot (
 
       call logger.debug(id, 'Value ' || value);
       call logger.debug(id, 'Col ' || col_name);
-      set statement = 'insert into session.pivot_temp (row, ' || col_name
+      set statement = 'insert into session.transpose_temp (row, ' || col_name
         || ') values (''' || col1[i].col_name || ''', '
         || coalesce ('''' || value || '''', 'null') || ')';
       call logger.info(id, 'Stmt: ''' || statement || '''');
@@ -327,12 +327,12 @@ create or replace procedure pivot (
    declare col_group varchar(128);
 
    call dbms_sql.open_cursor(handle);
-   call dbms_sql.parse(handle, 'select * from session.pivot_temp',
+   call dbms_sql.parse(handle, 'select * from session.transpose_temp',
      dbms_sql.native);
    call dbms_sql.describe_columns(handle, col_count, col);
    set col_group = col[1].col_name;
    if (col_count > 0) then
-    set statement = 'insert into session.pivot select row,';
+    set statement = 'insert into session.transpose select row,';
     fetchLoop: loop
      if (i > col_count) then
       leave fetchLoop;
@@ -344,7 +344,7 @@ create or replace procedure pivot (
      call logger.debug(id, statement);
      set i = i + 1;
     end loop;
-    set statement = statement || ' from session.pivot_temp group by row';
+    set statement = statement || ' from session.transpose_temp group by row';
     call logger.debug(id, statement);
     call dbms_sql.close_cursor(handle);
     call dbms_sql.open_cursor(handle);
