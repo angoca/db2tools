@@ -82,9 +82,9 @@ insert into test3 values
   ('King', 500, 2000),
   ('Mary', 400, 5000),
   (null, 100, 500);
-call pivot('test3');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test3');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test a null value in another column.
@@ -96,9 +96,9 @@ insert into test4 values
   ('King', 500, 2000),
   ('Mary', null, 5000),
   ('Harry', 100, 500);
-call pivot('test4');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test4');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test limit of integer.
@@ -110,9 +110,9 @@ insert into test5 values
   ('King', 500, 2000),
   ('Mary', 400, 5000),
   ('Harry', 100, 500);
-call pivot('test5');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test5');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test precision of other datatypes.
@@ -125,9 +125,9 @@ insert into test6 values
   ('King', 500, '2014-10-09', current timestamp, 123.45),
   ('Mary', 400, '2010-10-29', current timestamp, 12.1),
   ('Harry', 100, '2004-10-29', current timestamp, 3.65);
-call pivot('test6');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test6');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test decimal values.
@@ -139,9 +139,9 @@ insert into test7 values
   ('King', 123.45),
   ('Mary', 12.1),
   ('Harry', 3.65);
-call pivot('test7');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test7');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test a table with a lot of rows.
@@ -154,9 +154,9 @@ insert into test8 values
   ('Jerry1', 'Jerry2', 'Jerry3', 'Jerry4', 'Jerry5', 'Jerry6', 'Jerry7', 'Jerry8'),
   ('King1', 'King2', 'King3', 'King4', 'King5', 'King6', 'King7', 'King8'),
   ('Mary', 'Mary', 'Mary', 'Mary', 'Mary', 'Mary', 'Mary', 'Mary');
-call pivot('test8');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test8');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test row limit.
@@ -171,9 +171,9 @@ insert into test9 values
   ('Jerry2', 'Jerry', 2),
   ('King2', 'King', 3),
   ('Mary2', 'Mary', 3);
-call pivot('test9');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test9');
+select * from session.transpose_temp;
+select * from session.transpose;
 
 
 -- Test row limit.
@@ -184,7 +184,7 @@ insert into test10 values
   ('Jerry1', 'Jerry'),
   ('King1', 'King'),
   ('Mary1', 'Mary');
-call pivot('test10');
-select * from session.pivot_temp;
-select * from session.pivot;
+call transpose('test10');
+select * from session.transpose_temp;
+select * from session.transpose;
 
