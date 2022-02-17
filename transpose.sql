@@ -205,7 +205,7 @@ create or replace procedure transpose (
    execute stmt;
   end drop_current;
 
-  -- Pivots the table by creating two temporal tables.
+  -- Transposes the table by creating two temporal tables.
   temp_table: begin
    declare create_table varchar(32672) default
      'create table session.transpose_temp (row varchar(128), ';
